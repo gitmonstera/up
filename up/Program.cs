@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -16,7 +17,13 @@ namespace up
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Form1());
+
+            SplashForm splash = new SplashForm();
+            splash.Show();
+            Application.DoEvents();
+            Thread.Sleep(2000); // 2 секунды
+
+            splash.Close();
         }
     }
 }
