@@ -24,6 +24,7 @@ namespace up
             Thread.Sleep(2000); // 2 секунды
 
             splash.Close();
+            Application.Run(new MainForm());
         }
     }
 }

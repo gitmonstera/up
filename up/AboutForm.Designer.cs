@@ -1,6 +1,6 @@
 ﻿namespace up
 {
-    partial class SplashForm
+    partial class AboutForm
     {
         /// <summary>
         /// Required designer variable.
@@ -30,13 +30,13 @@
         {
             this.SuspendLayout();
             // 
-            // SplashForm
+            // AboutForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 450);
-            this.Name = "SplashForm";
-            this.Text = "App";
+            this.ClientSize = new System.Drawing.Size(435, 641);
+            this.Name = "AboutForm";
+            this.Text = "AboutForm";
             this.ResumeLayout(false);
 
         }
@@ -44,4 +44,3 @@
         #endregion
     }
 }
-
