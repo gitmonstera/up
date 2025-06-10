@@ -1,13 +1,16 @@
 ﻿using System;
+using System.Data;
 using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Data.Sqlite;
 
 namespace up
 {
     public partial class MainForm : Form
     {
         private AboutForm aboutForm = null;
+        private const string DbFileName = "results.db";
 
         public MainForm()
         {
@@ -17,6 +20,52 @@ namespace up
             this.MaximizeBox = false;
 
             pictureBox1.Paint += pictureBox1_Paint;
+
+            InitializeDatabase();
+        }
+
+        private void InitializeDatabase()
+        {
+            using var connection = new SqliteConnection($"Data Source={DbFileName}");
+            connection.Open();
+
+            var tableCmd = connection.CreateCommand();
+            tableCmd.CommandText =
+            @"
+            CREATE TABLE IF NOT EXISTS Calculations (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                X0 REAL,
+                Y0 REAL,
+                R REAL,
+                K REAL,
+                Direction TEXT,
+                BiggerSegmentArea REAL,
+                DateTime TEXT
+            );
+            ";
+            tableCmd.ExecuteNonQuery();
+        }
+
+        private void SaveCalculation(double x0, double y0, double R, double K, string direction, double area)
+        {
+            using var connection = new SqliteConnection($"Data Source={DbFileName}");
+            connection.Open();
+
+            var insertCmd = connection.CreateCommand();
+            insertCmd.CommandText =
+            @"
+            INSERT INTO Calculations (X0, Y0, R, K, Direction, BiggerSegmentArea, DateTime)
+            VALUES ($x0, $y0, $r, $k, $direction, $area, $datetime);
+            ";
+            insertCmd.Parameters.AddWithValue("$x0", x0);
+            insertCmd.Parameters.AddWithValue("$y0", y0);
+            insertCmd.Parameters.AddWithValue("$r", R);
+            insertCmd.Parameters.AddWithValue("$k", K);
+            insertCmd.Parameters.AddWithValue("$direction", direction);
+            insertCmd.Parameters.AddWithValue("$area", area);
+            insertCmd.Parameters.AddWithValue("$datetime", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+
+            insertCmd.ExecuteNonQuery();
         }
 
         private void button2_Click(object sender, EventArgs e)
@@ -31,6 +80,12 @@ namespace up
             {
                 aboutForm.BringToFront();
             }
+        }
+
+        private async void buttonShowResults_Click(object sender, EventArgs e)
+        {
+            var resultsForm = new ResultsForm();
+            resultsForm.Show(this);
         }
 
         private async void button1_Click(object sender, EventArgs e)
@@ -51,7 +106,7 @@ namespace up
             }
 
             button1.Enabled = false;
-            res.Text = "Идет расчет...\n Пожалуйста, подождите.";
+            res.Text = "Идет расчет... Пожалуйста, подождите.";
 
             Bitmap bmp = new Bitmap(pictureBox1.Width, pictureBox1.Height);
 
@@ -94,33 +149,25 @@ namespace up
 
             pictureBox1.Image = bmp;
 
-            // Расчет площади большого сегмента
             bool isHorizontal = radioButton1.Checked;
             double biggerSegmentArea = CalculateBiggerSegmentArea(R, x0, y0, K, isHorizontal);
 
-            res.Text = $"Площадь большого\n\t\t сегмента:\n {biggerSegmentArea:F6}";
+            res.Text = $"Площадь большого сегмента: {biggerSegmentArea:F6}";
+
+            // Сохраняем в базу
+            string direction = isHorizontal ? "Горизонталь" : "Вертикаль";
+            SaveCalculation(x0, y0, R, K, direction, biggerSegmentArea);
 
             button1.Enabled = true;
         }
 
         private double CalculateBiggerSegmentArea(double R, double x0, double y0, double K, bool isHorizontalLine)
         {
-            double d;
-
-            if (isHorizontalLine)
-            {
-                d = Math.Abs(y0 - K);
-            }
-            else
-            {
-                d = Math.Abs(x0 - K);
-            }
-
+            double d = isHorizontalLine ? Math.Abs(y0 - K) : Math.Abs(x0 - K);
             double circleArea = Math.PI * R * R;
 
             if (d >= R)
             {
-                // Линия не пересекает круг
                 return circleArea;
             }
 
@@ -128,9 +175,7 @@ namespace up
 
             double smallerSegmentArea = R * R * Math.Acos((R - h) / R) - (R - h) * Math.Sqrt(2 * R * h - h * h);
 
-            double biggerSegmentArea = circleArea - smallerSegmentArea;
-
-            return biggerSegmentArea;
+            return circleArea - smallerSegmentArea;
         }
 
         private void pictureBox1_Paint(object sender, PaintEventArgs e)
